@@ -9,6 +9,8 @@
  ******************************************************************************/
 #include <FastLED.h>
 #include<Wire.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #define NUM_LEDS 6 //number of LED's on strip
 #define LED_PIN 1 //digital pin for data output
@@ -41,7 +43,7 @@ void setup() {
   }
   FastLED.show();
 
-  //setupMPU();
+  setupMPU();
   
   Serial.println("Ready");
 }
@@ -95,9 +97,15 @@ void recordAccelRegisters() {
 }
 
 void processAccelData(){
-  gForceX = accelX / 16384.0;
-  gForceY = accelY / 16384.0; 
-  gForceZ = accelZ / 16384.0;
+  float gForceX = accelX / 16384.0;
+  float gForceY = accelY / 16384.0; 
+  float gForceZ = accelZ / 16384.0;
+  Serial.println("X = ");
+  Serial.print(gForceX);
+  Serial.print("Y = ");
+  Serial.print(gForceX);
+  Serial.print("Z = ");
+  Serial.print(gForceX);
 }
 
 int convert_to_LED(long data) {
@@ -109,9 +117,10 @@ void loop() {
   // receive accelerometer data
   // set LED from data
   FastLED.addLeds<NEOPIXEL, LED_PIN>(led, NUM_LEDS);
-  //recordAccelRegisters();
+  recordAccelRegisters();
+  wait(NULL);
   for (int i = 0; i < NUM_LEDS; i++) {
-    //led[i] = CRGB(convert_to_LED(accelX), convert_to_LED(accelY), convert_to_LED(accelZ));
+    led[i] = CRGB(convert_to_LED(accelX), convert_to_LED(accelY), convert_to_LED(accelZ));
     digitalWrite(TEST_PIN, HIGH);
     led[i] = CRGB( 50, 0, 0);
     digitalWrite(TEST_PIN, LOW);
