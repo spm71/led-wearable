@@ -16,14 +16,19 @@
 #define LED_PIN 1 //digital pin for data output
 #define TEST_PIN 2
 
-const int MPU6050_addr=0x68;
 long accelX, accelY, accelZ;
 float gForceX, gForceY, gForceZ;
+const int address = 0b1101000;
+int done = 1;
 
 
 CRGB led[NUM_LEDS]; //create LED array
 
 void set_led(int x, int y, int z);
+void setupMPU();
+void recordAccelRegisters();
+void processAccelData();
+void printData();
 
 /*
  * void setup();
@@ -37,12 +42,15 @@ void set_led(int x, int y, int z);
 */
 void setup() { 
   Serial.begin(9600);
+  Wire.begin();
+  /*
   FastLED.addLeds<NEOPIXEL, LED_PIN>(led, NUM_LEDS);
   for (int i = 0; i < NUM_LEDS; i++) {
     led[i] = CRGB(0, 50, 0);
   }
   FastLED.show();
-
+  */
+  
   setupMPU();
   
   Serial.println("Ready");
@@ -69,23 +77,23 @@ void set_led(int x, int y, int z) {
   FastLED.show();
 }
 
-int setupMPU() {
-  Wire.beginTransmission(MPU6050_addr); //This is the I2C address of the MPU (b1101000/b1101001 for AC0 low/high datasheet sec. 9.2)
+void setupMPU(){
+  Wire.beginTransmission(address); //This is the I2C address of the MPU (b1101000/b1101001 for AC0 low/high datasheet sec. 9.2)
   Wire.write(0x6B); //Accessing the register 6B - Power Management (Sec. 4.28)
   Wire.write(0b00000000); //Setting SLEEP register to 0. (Required; see Note on p. 9)
   Wire.endTransmission();  
-  Wire.beginTransmission(MPU6050_addr); //I2C address of the MPU
+  Wire.beginTransmission(address); //I2C address of the MPU
   Wire.write(0x1B); //Accessing the register 1B - Gyroscope Configuration (Sec. 4.4) 
   Wire.write(0x00000000); //Setting the gyro to full scale +/- 250deg./s 
   Wire.endTransmission(); 
-  Wire.beginTransmission(MPU6050_addr); //I2C address of the MPU
-  Wire.write(0x1C); //Accessing the register 1C - Acccelerometer Configuration (Sec. 4.5) 
+  Wire.beginTransmission(address); //I2C address of the MPU
+  Wire.write(0x1D); //Accessing the register 1C - Acccelerometer Configuration (Sec. 4.5) 
   Wire.write(0b00000000); //Setting the accel to +/- 2g
   Wire.endTransmission(); 
 }
 
 void recordAccelRegisters() {
-  Wire.beginTransmission(0b1101000); //I2C address of the MPU
+  Wire.beginTransmission(address); //I2C address of the MPU
   Wire.write(0x3B); //Starting register for Accel Readings
   Wire.endTransmission();
   Wire.requestFrom(0b1101000,6); //Request Accel Registers (3B - 40)
@@ -97,20 +105,25 @@ void recordAccelRegisters() {
 }
 
 void processAccelData(){
-  float gForceX = accelX / 16384.0;
-  float gForceY = accelY / 16384.0; 
-  float gForceZ = accelZ / 16384.0;
-  Serial.println("X = ");
-  Serial.print(gForceX);
-  Serial.print("Y = ");
-  Serial.print(gForceX);
-  Serial.print("Z = ");
-  Serial.print(gForceX);
+  gForceX = accelX / 1638.40;
+  gForceY = accelY / 1638.40; 
+  gForceZ = accelZ / 1638.40;
 }
 
+
 int convert_to_LED(long data) {
-  int led_data = (int) data * 100;
+  int led_data = (int) (data * 50);
   return led_data;
+}
+
+void printData() {
+  Serial.print(" Accel (g)");
+  Serial.print(" X=");
+  Serial.print(gForceX);
+  Serial.print(" Y=");
+  Serial.print(gForceY);
+  Serial.print(" Z=");
+  Serial.println(gForceZ);
 }
 
 void loop() {
@@ -118,14 +131,14 @@ void loop() {
   // set LED from data
   FastLED.addLeds<NEOPIXEL, LED_PIN>(led, NUM_LEDS);
   recordAccelRegisters();
-  wait(NULL);
+  printData();
   for (int i = 0; i < NUM_LEDS; i++) {
-    led[i] = CRGB(convert_to_LED(accelX), convert_to_LED(accelY), convert_to_LED(accelZ));
+    led[i] = CRGB(gForceX, gForceY, gForceZ);
     digitalWrite(TEST_PIN, HIGH);
-    led[i] = CRGB( 50, 0, 0);
     digitalWrite(TEST_PIN, LOW);
   }
   FastLED.show();
-  delay(1);
-  Serial.println("Assigned colors");
+  
+  //delay(100);
+  //Serial.println("Assigned colors");
 }

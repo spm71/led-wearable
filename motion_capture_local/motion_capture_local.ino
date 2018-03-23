@@ -19,9 +19,7 @@ void setup() {
 
 
 void loop() {
-  Serial.println("Record");
   recordAccelRegisters();
-  Serial.println("Print");
   printData();
   delay(100);
 }
@@ -62,11 +60,11 @@ void processAccelData(){
 
 
 void printData() {
-  Serial.print(" Accel (g)");
+  Serial.println(" Accel (g)");
   Serial.print(" X=");
   Serial.print(gForceX);
   Serial.print(" Y=");
   Serial.print(gForceY);
   Serial.print(" Z=");
-  Serial.println(gForceZ);
+  Serial.print(gForceZ);
 }
