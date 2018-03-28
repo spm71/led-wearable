@@ -12,14 +12,17 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-#define NUM_LEDS 6 //number of LED's on strip
+#define NUM_LEDS 16 //number of LED's on strip
 #define LED_PIN 1 //digital pin for data output
 #define TEST_PIN 2
 
 long accelX, accelY, accelZ;
 float gForceX, gForceY, gForceZ;
+
+long gyroX, gyroY, gyroZ;
+float rotX, rotY, rotZ;
+
 const int address = 0b1101000;
-int done = 1;
 
 
 CRGB led[NUM_LEDS]; //create LED array
@@ -43,13 +46,13 @@ void printData();
 void setup() { 
   Serial.begin(9600);
   Wire.begin();
-  /*
+  
   FastLED.addLeds<NEOPIXEL, LED_PIN>(led, NUM_LEDS);
   for (int i = 0; i < NUM_LEDS; i++) {
-    led[i] = CRGB(0, 50, 0);
+    led[i] = CRGB(0, 10, 0);
   }
   FastLED.show();
-  */
+  
   
   setupMPU();
   
@@ -104,12 +107,29 @@ void recordAccelRegisters() {
   processAccelData();
 }
 
+void recordGyroRegisters() {
+  Wire.beginTransmission(0b1101000); //I2C address of the MPU
+  Wire.write(0x43); //Starting register for Gyro Readings
+  Wire.endTransmission();
+  Wire.requestFrom(0b1101000,6); //Request Gyro Registers (43 - 48)
+  while(Wire.available() < 6);
+  gyroX = Wire.read()<<8|Wire.read(); //Store first two bytes into accelX
+  gyroY = Wire.read()<<8|Wire.read(); //Store middle two bytes into accelY
+  gyroZ = Wire.read()<<8|Wire.read(); //Store last two bytes into accelZ
+  processGyroData();
+}
+
 void processAccelData(){
   gForceX = accelX / 1638.40;
   gForceY = accelY / 1638.40; 
   gForceZ = accelZ / 1638.40;
 }
 
+void processGyroData() {
+  rotX = gyroX / 131.0;
+  rotY = gyroY / 131.0; 
+  rotZ = gyroZ / 131.0;
+}
 
 int convert_to_LED(long data) {
   int led_data = (int) (data * 50);
@@ -117,6 +137,13 @@ int convert_to_LED(long data) {
 }
 
 void printData() {
+  Serial.print("Gyro (deg)");
+  Serial.print(" X=");
+  Serial.print(rotX);
+  Serial.print(" Y=");
+  Serial.print(rotY);
+  Serial.print(" Z=");
+  Serial.print(rotZ);
   Serial.print(" Accel (g)");
   Serial.print(" X=");
   Serial.print(gForceX);
@@ -129,16 +156,28 @@ void printData() {
 void loop() {
   // receive accelerometer data
   // set LED from data
+  float prev_rotX, prev_rotY, prev_rotZ;
   FastLED.addLeds<NEOPIXEL, LED_PIN>(led, NUM_LEDS);
   recordAccelRegisters();
+  recordGyroRegisters();
   printData();
-  for (int i = 0; i < NUM_LEDS; i++) {
-    led[i] = CRGB(gForceX, gForceY, gForceZ);
-    digitalWrite(TEST_PIN, HIGH);
-    digitalWrite(TEST_PIN, LOW);
-  }
+  if (rotX > 400)
+    rotX = prev_rotX;
+  if (rotY > 400)
+    rotY = prev_rotY;
+  if (rotZ > 400)
+    rotZ = prev_rotZ;
+    
+    
+  for (int i = 0; i < NUM_LEDS; i++) 
+    led[i] = CRGB(rotX/10, rotY/10, rotZ/10);
+      
+    //digitalWrite(TEST_PIN, HIGH);
+    //digitalWrite(TEST_PIN, LOW);
   FastLED.show();
   
-  //delay(100);
+  prev_rotX = rotX;
+  prev_rotY = rotY;
+  prev_rotZ = rotZ;
   //Serial.println("Assigned colors");
 }
