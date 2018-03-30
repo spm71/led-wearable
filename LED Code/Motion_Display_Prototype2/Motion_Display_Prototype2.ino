@@ -52,7 +52,9 @@ void setup() {
     led[i] = CRGB(0, 10, 0);
   }
   FastLED.show();
-  
+
+  pinMode (2, OUTPUT);
+  digitalWrite(2,LOW);
   
   setupMPU();
   
@@ -80,6 +82,16 @@ void set_led(int x, int y, int z) {
   FastLED.show();
 }
 
+/*
+ * void setupMPU();
+ * Description: Initializes I2C connection with active address
+ * 
+ * Inputs: 
+ *      Parameters: none
+ *      
+ * Outputs:
+ *      Returns: void
+*/
 void setupMPU(){
   Wire.beginTransmission(address); //This is the I2C address of the MPU (b1101000/b1101001 for AC0 low/high datasheet sec. 9.2)
   Wire.write(0x6B); //Accessing the register 6B - Power Management (Sec. 4.28)
@@ -95,6 +107,16 @@ void setupMPU(){
   Wire.endTransmission(); 
 }
 
+/*
+ * void recordAccelRegisters();
+ * Description: record 3-axis acceleration data
+ * 
+ * Inputs: 
+ *      Parameters: none
+ *      
+ * Outputs:
+ *      Returns: void
+*/
 void recordAccelRegisters() {
   Wire.beginTransmission(address); //I2C address of the MPU
   Wire.write(0x3B); //Starting register for Accel Readings
@@ -107,11 +129,21 @@ void recordAccelRegisters() {
   processAccelData();
 }
 
+/*
+ * void recordGyroRegisters();
+ * Description: record 3-axis gyroscope data
+ * 
+ * Inputs: 
+ *      Parameters: none
+ *      
+ * Outputs:
+ *      Returns: void
+*/
 void recordGyroRegisters() {
-  Wire.beginTransmission(0b1101000); //I2C address of the MPU
+  Wire.beginTransmission(address); //I2C address of the MPU
   Wire.write(0x43); //Starting register for Gyro Readings
   Wire.endTransmission();
-  Wire.requestFrom(0b1101000,6); //Request Gyro Registers (43 - 48)
+  Wire.requestFrom(address,6); //Request Gyro Registers (43 - 48)
   while(Wire.available() < 6);
   gyroX = Wire.read()<<8|Wire.read(); //Store first two bytes into accelX
   gyroY = Wire.read()<<8|Wire.read(); //Store middle two bytes into accelY
@@ -119,23 +151,67 @@ void recordGyroRegisters() {
   processGyroData();
 }
 
+/*
+ * void processAccelData();
+ * Description: modify acceleration data to reflect number of g's
+ * 
+ * Inputs: 
+ *      Parameters: none
+ *      
+ * Outputs:
+ *      Returns: void
+*/
 void processAccelData(){
   gForceX = accelX / 1638.40;
   gForceY = accelY / 1638.40; 
   gForceZ = accelZ / 1638.40;
 }
 
+/*
+ * void processGyroData();
+ * Description: modify gyroscopic data to reflect number of degrees per second
+ * 
+ * Inputs: 
+ *      Parameters: none
+ *      
+ * Outputs:
+ *      Returns: void
+*/
 void processGyroData() {
   rotX = gyroX / 131.0;
   rotY = gyroY / 131.0; 
   rotZ = gyroZ / 131.0;
 }
 
+/*
+ * int convert_to_LED(long data);
+ * Description: convert values to a format fit for the LED strip
+ * 
+ * Inputs: 
+ *      Parameters: 
+ *        long data: input data from motion sensor
+ *      
+ * Outputs:
+ *      Returns:
+ *        int led_data: formatted value for LED
+*/
 int convert_to_LED(long data) {
   int led_data = (int) (data * 50);
   return led_data;
 }
 
+/*
+ * void printData();
+ * Description: print all motion data values to test sensors
+ * 
+ * Inputs: 
+ *      Parameters: 
+ *        long data: input data from motion sensor
+ *      
+ * Outputs:
+ *      Returns:
+ *        int led_data: formatted value for LED
+*/
 void printData() {
   Serial.print("Gyro (deg)");
   Serial.print(" X=");
