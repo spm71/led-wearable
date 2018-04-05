@@ -12,26 +12,51 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-#define NUM_LEDS 16 //number of LED's on strip
-#define LED_PIN 1 //digital pin for data output
-#define TEST_PIN 2
+// number of LED's on strip
+#define NUM_LEDS_ARMS 16 
+#define NUM_LEDS_LEGS 20 
 
+// digital pins for LED data output
+#define LED_PIN_1 1 
+#define LED_PIN_2 1
+#define LED_PIN_3 1
+#define LED_PIN_4 1
+
+// digital pins for motion data input
+#define MOTION_PIN_1 2 
+#define MOTION_PIN_2 3
+#define MOTION_PIN_3 4
+#define MOTION_PIN_4 5
+
+// variables for acceleration data
 long accelX, accelY, accelZ;
-float gForceX, gForceY, gForceZ;
+float gForceX_1, gForceY_1, gForceZ_1;
+float gForceX_2, gForceY_2, gForceZ_2;
+float gForceX_3, gForceY_3, gForceZ_3;
+float gForceX_4, gForceY_4, gForceZ_4;
 
+// variables for gyroscopic data
 long gyroX, gyroY, gyroZ;
-float rotX, rotY, rotZ;
+float rotX_1, rotY_1, rotZ_1;
+float rotX_2, rotY_2, rotZ_2;
+float rotX_3, rotY_3, rotZ_3;
+float rotX_4, rotY_4, rotZ_4;
 
+// i2c address for active MPU
 const int address = 0b1101000;
 
+//LED arrays
+CRGB led_1[NUM_LEDS_ARMS];
+CRGB led_2[NUM_LEDS_ARMS];
+CRGB led_3[NUM_LEDS_LEGS];
+CRGB led_4[NUM_LEDS_LEGS];
 
-CRGB led[NUM_LEDS]; //create LED array
-
-void set_led(int x, int y, int z);
-void setupMPU();
-void recordAccelRegisters();
-void processAccelData();
-void printData();
+// function prototypes
+void set_led(CRGB led, int led_count, int x, int y, int z);
+void setup_MPU();
+void record_accel_registers(int sensor);
+void process_accel_data(int sensor);
+void print_data();
 
 /*
  * void setup();
@@ -47,22 +72,124 @@ void setup() {
   Serial.begin(9600);
   Wire.begin();
   
-  FastLED.addLeds<NEOPIXEL, LED_PIN>(led, NUM_LEDS);
-  for (int i = 0; i < NUM_LEDS; i++) {
-    led[i] = CRGB(0, 10, 0);
+   // initialize LED strips
+  FastLED.addLeds<NEOPIXEL, LED_PIN_1>(led_1, NUM_LEDS_ARMS);
+  FastLED.addLeds<NEOPIXEL, LED_PIN_2>(led_2, NUM_LEDS_ARMS);
+  FastLED.addLeds<NEOPIXEL, LED_PIN_3>(led_3, NUM_LEDS_LEGS);
+  FastLED.addLeds<NEOPIXEL, LED_PIN_4>(led_4, NUM_LEDS_LEGS);
+  
+  // set all LED strips to low green
+  for (int i = 0; i < NUM_LEDS_ARMS; i++) {
+    led_1[i] = CRGB(0, 10, 0);
+    led_2[i] = CRGB(0, 10, 0);
+    led_3[i] = CRGB(0, 10, 0);
+    led_4[i] = CRGB(0, 10, 0);
   }
   FastLED.show();
 
-  pinMode (2, OUTPUT);
-  digitalWrite(2,LOW);
+  pinMode (MOTION_PIN_1, OUTPUT);
+  pinMode (MOTION_PIN_2, OUTPUT);
+  pinMode (MOTION_PIN_3, OUTPUT);
+  pinMode (MOTION_PIN_4, OUTPUT);
+  digitalWrite(MOTION_PIN_1,LOW);
+  digitalWrite(MOTION_PIN_2,HIGH);
+  digitalWrite(MOTION_PIN_3,HIGH);
+  digitalWrite(MOTION_PIN_4,HIGH);
   
-  setupMPU();
+  setup_MPU();
   
   Serial.println("Ready");
 }
 
+void loop() {
+  // declare previous gyro values
+  float prev_rotX_1, prev_rotY_1, prev_rotZ_1;
+  float prev_rotX_2, prev_rotY_2, prev_rotZ_2;
+  float prev_rotX_3, prev_rotY_3, prev_rotZ_3;
+  float prev_rotX_4, prev_rotY_4, prev_rotZ_4;
+  int inputx, inputy, inputz;
+
+  // first limb
+  scan_motion(MOTION_PIN_1);
+  print_data();
+  if (rotX_1 > 400)
+    rotX_1 = prev_rotX_1;
+  if (rotY_1 > 400)
+    rotY_1 = prev_rotY_1;
+  if (rotZ_1 > 400)
+    rotZ_1 = prev_rotZ_1;
+
+   inputx = (int) rotX_1;
+   inputy = (int) rotY_1;
+   inputz = (int) rotZ_1;
+   //set_led(led_1, NUM_LEDS_ARMS, inputx/10, inputy/10, inputz/10);
+   for (int i = 0; i < NUM_LEDS_ARMS; i++) {
+    led_1[i] = CRGB(inputx/10, inputy/10, inputz/10);
+   }
+  FastLED.show();
+
+  // second limb
+  scan_motion(MOTION_PIN_2);
+  print_data();
+  if (rotX_2 > 400)
+    rotX_2 = prev_rotX_2;
+  if (rotY_2 > 400)
+    rotY_2 = prev_rotY_2;
+  if (rotZ_1 > 400)
+    rotZ_2 = prev_rotZ_2;
+
+   inputx = (int) rotX_2;
+   inputy = (int) rotY_2;
+   inputz = (int) rotZ_2;
+   //set_led(led_1, NUM_LEDS_ARMS, inputx/10, inputy/10, inputz/10);
+   for (int i = 0; i < NUM_LEDS_ARMS; i++) {
+    led_2[i] = CRGB(inputx/10, inputy/10, inputz/10);
+   }
+  FastLED.show();
+
+  // third limb
+  scan_motion(MOTION_PIN_3);
+  print_data();
+  if (rotX_3 > 400)
+    rotX_3 = prev_rotX_3;
+  if (rotY_1 > 400)
+    rotY_3 = prev_rotY_3;
+  if (rotZ_1 > 400)
+    rotZ_3 = prev_rotZ_3;
+
+   inputx = (int) rotX_3;
+   inputy = (int) rotY_3;
+   inputz = (int) rotZ_3;
+   //set_led(led_3, NUM_LEDS_ARMS, inputx/10, inputy/10, inputz/10);
+   for (int i = 0; i < NUM_LEDS_LEGS; i++) {
+    led_3[i] = CRGB(inputx/10, inputy/10, inputz/10);
+   }
+  FastLED.show();
+
+  // fourth limb
+  scan_motion(MOTION_PIN_4);
+  print_data();
+  if (rotX_4 > 400)
+    rotX_4 = prev_rotX_4;
+  if (rotY_4 > 400)
+    rotY_4 = prev_rotY_4;
+  if (rotZ_4 > 400)
+    rotZ_4 = prev_rotZ_4;
+
+   inputx = (int) prev_rotX_4;
+   inputy = (int) prev_rotY_4;
+   inputz = (int) prev_rotZ_4;
+   //set_led(led_1, NUM_LEDS_ARMS, inputx/10, inputy/10, inputz/10);
+   for (int i = 0; i < NUM_LEDS_LEGS; i++) {
+    led_4[i] = CRGB(inputx/10, inputy/10, inputz/10);
+   }
+  FastLED.show();
+
+  //Serial.println("Assigned colors");
+}
+
 /*
- * void set_led(int x, int y, int z) 
+ * void set_led(CRGB led, int led_count, int x, int y, int z) 
  * Description: set all LED's based on accelerometer input
  * 
  * Inputs: 
@@ -74,16 +201,15 @@ void setup() {
  * Outputs:
  *      Returns: void
 */
-void set_led(int x, int y, int z) { 
-  FastLED.addLeds<NEOPIXEL, LED_PIN>(led, NUM_LEDS);
-  for (int i = 0; i < NUM_LEDS; i++) {
+void set_led(CRGB led, int led_count, int x, int y, int z) { 
+  for (int i = 0; i < led_count; i++) {
     led[i] = CRGB(x, y, z);
   }
   FastLED.show();
 }
 
 /*
- * void setupMPU();
+ * void setup_MPU();
  * Description: Initializes I2C connection with active address
  * 
  * Inputs: 
@@ -92,7 +218,7 @@ void set_led(int x, int y, int z) {
  * Outputs:
  *      Returns: void
 */
-void setupMPU(){
+void setup_MPU(){
   Wire.beginTransmission(address); //This is the I2C address of the MPU (b1101000/b1101001 for AC0 low/high datasheet sec. 9.2)
   Wire.write(0x6B); //Accessing the register 6B - Power Management (Sec. 4.28)
   Wire.write(0b00000000); //Setting SLEEP register to 0. (Required; see Note on p. 9)
@@ -108,7 +234,7 @@ void setupMPU(){
 }
 
 /*
- * void recordAccelRegisters();
+ * void record_accel_registers();
  * Description: record 3-axis acceleration data
  * 
  * Inputs: 
@@ -117,7 +243,7 @@ void setupMPU(){
  * Outputs:
  *      Returns: void
 */
-void recordAccelRegisters() {
+void record_accel_registers(int sensor) {
   Wire.beginTransmission(address); //I2C address of the MPU
   Wire.write(0x3B); //Starting register for Accel Readings
   Wire.endTransmission();
@@ -126,11 +252,11 @@ void recordAccelRegisters() {
   accelX = Wire.read()<<8|Wire.read(); //Store first two bytes into accelX
   accelY = Wire.read()<<8|Wire.read(); //Store middle two bytes into accelY
   accelZ = Wire.read()<<8|Wire.read(); //Store last two bytes into accelZ
-  processAccelData();
+  process_accel_data(sensor);
 }
 
 /*
- * void recordGyroRegisters();
+ * void record_gyro_registers();
  * Description: record 3-axis gyroscope data
  * 
  * Inputs: 
@@ -139,7 +265,7 @@ void recordAccelRegisters() {
  * Outputs:
  *      Returns: void
 */
-void recordGyroRegisters() {
+void record_gyro_registers(int sensor) {
   Wire.beginTransmission(address); //I2C address of the MPU
   Wire.write(0x43); //Starting register for Gyro Readings
   Wire.endTransmission();
@@ -148,11 +274,11 @@ void recordGyroRegisters() {
   gyroX = Wire.read()<<8|Wire.read(); //Store first two bytes into accelX
   gyroY = Wire.read()<<8|Wire.read(); //Store middle two bytes into accelY
   gyroZ = Wire.read()<<8|Wire.read(); //Store last two bytes into accelZ
-  processGyroData();
+  process_gyro_data(sensor);
 }
 
 /*
- * void processAccelData();
+ * void process_accel_data();
  * Description: modify acceleration data to reflect number of g's
  * 
  * Inputs: 
@@ -161,14 +287,32 @@ void recordGyroRegisters() {
  * Outputs:
  *      Returns: void
 */
-void processAccelData(){
-  gForceX = accelX / 1638.40;
-  gForceY = accelY / 1638.40; 
-  gForceZ = accelZ / 1638.40;
+void process_accel_data(int sensor){
+  if (sensor == MOTION_PIN_1) {
+    gForceX_1 = accelX / 1638.40;
+    gForceY_1 = accelY / 1638.40; 
+    gForceZ_1 = accelZ / 1638.40;
+  }
+  else if (sensor == MOTION_PIN_2) {
+    gForceX_2 = accelX / 1638.40;
+    gForceY_2 = accelY / 1638.40; 
+    gForceZ_2 = accelZ / 1638.40;
+  }
+  else if (sensor == MOTION_PIN_2) {
+    gForceX_3 = accelX / 1638.40;
+    gForceY_3 = accelY / 1638.40; 
+    gForceZ_3 = accelZ / 1638.40;
+  }
+  else if (sensor == MOTION_PIN_2) {
+    gForceX_4 = accelX / 1638.40;
+    gForceY_4 = accelY / 1638.40; 
+    gForceZ_4 = accelZ / 1638.40;
+  }
+  
 }
 
 /*
- * void processGyroData();
+ * void process_gyro_data();
  * Description: modify gyroscopic data to reflect number of degrees per second
  * 
  * Inputs: 
@@ -177,10 +321,27 @@ void processAccelData(){
  * Outputs:
  *      Returns: void
 */
-void processGyroData() {
-  rotX = gyroX / 131.0;
-  rotY = gyroY / 131.0; 
-  rotZ = gyroZ / 131.0;
+void process_gyro_data(int sensor) {
+  if (sensor == MOTION_PIN_1) {
+    rotX_1 = gyroX / 131.0;
+    rotY_1 = gyroY / 131.0; 
+    rotZ_1 = gyroZ / 131.0;
+  }
+  else if (sensor == MOTION_PIN_2) {
+    rotX_2 = gyroX / 131.0;
+    rotY_2 = gyroY / 131.0; 
+    rotZ_2 = gyroZ / 131.0;
+  }
+  else if (sensor == MOTION_PIN_3) {
+    rotX_3 = gyroX / 131.0;
+    rotY_3 = gyroY / 131.0; 
+    rotZ_3 = gyroZ / 131.0;
+  }
+  else if (sensor == MOTION_PIN_4) {
+    rotX_4 = gyroX / 131.0;
+    rotY_4 = gyroY / 131.0; 
+    rotZ_4 = gyroZ / 131.0;
+  }
 }
 
 /*
@@ -201,7 +362,7 @@ int convert_to_LED(long data) {
 }
 
 /*
- * void printData();
+ * void print_data();
  * Description: print all motion data values to test sensors
  * 
  * Inputs: 
@@ -212,48 +373,38 @@ int convert_to_LED(long data) {
  *      Returns:
  *        int led_data: formatted value for LED
 */
-void printData() {
+void print_data() {
   Serial.print("Gyro (deg)");
   Serial.print(" X=");
-  Serial.print(rotX);
+  Serial.print(rotX_1);
   Serial.print(" Y=");
-  Serial.print(rotY);
+  Serial.print(rotY_1);
   Serial.print(" Z=");
-  Serial.print(rotZ);
+  Serial.print(rotZ_1);
   Serial.print(" Accel (g)");
   Serial.print(" X=");
-  Serial.print(gForceX);
+  Serial.print(gForceX_1);
   Serial.print(" Y=");
-  Serial.print(gForceY);
+  Serial.print(gForceY_1);
   Serial.print(" Z=");
-  Serial.println(gForceZ);
+  Serial.println(gForceZ_1);
 }
 
-void loop() {
-  // receive accelerometer data
-  // set LED from data
-  float prev_rotX, prev_rotY, prev_rotZ;
-  FastLED.addLeds<NEOPIXEL, LED_PIN>(led, NUM_LEDS);
-  recordAccelRegisters();
-  recordGyroRegisters();
-  printData();
-  if (rotX > 400)
-    rotX = prev_rotX;
-  if (rotY > 400)
-    rotY = prev_rotY;
-  if (rotZ > 400)
-    rotZ = prev_rotZ;
-    
-    
-  for (int i = 0; i < NUM_LEDS; i++) 
-    led[i] = CRGB(rotX/10, rotY/10, rotZ/10);
-      
-    //digitalWrite(TEST_PIN, HIGH);
-    //digitalWrite(TEST_PIN, LOW);
-  FastLED.show();
-  
-  prev_rotX = rotX;
-  prev_rotY = rotY;
-  prev_rotZ = rotZ;
-  //Serial.println("Assigned colors");
+/*
+ * void scan_motion();
+ * Description: sets a motion sensor and captures data from it
+ * 
+ * Inputs: 
+ *      Parameters: 
+ *        int sensor: pin number for motion sensor
+ *      
+ * Outputs:
+ *      Returns:
+*/
+void scan_motion(int sensor) {
+  digitalWrite(sensor,LOW);
+  record_accel_registers(sensor);
+  record_gyro_registers(sensor);
+  digitalWrite(sensor,HIGH);
 }
+
