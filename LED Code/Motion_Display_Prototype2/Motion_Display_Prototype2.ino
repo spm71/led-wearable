@@ -4,7 +4,7 @@
  * Author: Sam Morrison
  * 
  * Created: 2/19/2018
- * Date last modified: 3/9/2018
+ * Date last modified: 4/6/2018
  *
  ******************************************************************************/
 #include <FastLED.h>
@@ -63,7 +63,7 @@ void scan_motion(int sensor);
 
 /*
  * void setup();
- * Description: initialize LED strip to green
+ * Description: initialize LED strips to green and set up MPUs
  * 
  * Inputs: 
  *      Parameters: none
@@ -94,9 +94,9 @@ void setup() {
   pinMode (MOTION_PIN_2, OUTPUT);
   pinMode (MOTION_PIN_3, OUTPUT);
   pinMode (MOTION_PIN_4, OUTPUT);
-  digitalWrite(MOTION_PIN_1,LOW);
+  digitalWrite(MOTION_PIN_1,HIGH);
   digitalWrite(MOTION_PIN_2,HIGH);
-  digitalWrite(MOTION_PIN_3,HIGH);
+  digitalWrite(MOTION_PIN_3,LOW);
   digitalWrite(MOTION_PIN_4,HIGH);
   
   setup_MPU();
@@ -104,6 +104,16 @@ void setup() {
   Serial.println("Ready");
 }
 
+/*
+ * void loop();
+ * Description: continuously receive motion data and write to LEDs
+ * 
+ * Inputs: 
+ *      Parameters: none
+ *      
+ * Outputs:
+ *      Returns: void
+*/
 void loop() {
   // declare previous gyro values
   float prev_rotX_1, prev_rotY_1, prev_rotZ_1;
@@ -112,9 +122,11 @@ void loop() {
   float prev_rotX_4, prev_rotY_4, prev_rotZ_4;
   int inputx, inputy, inputz;
 
+  //.println("Scanning from first sensor...");
+  //delay(0.5);
+  
   // first limb
   scan_motion(MOTION_PIN_1);
-  print_data();
   if (rotX_1 > 400)
     rotX_1 = prev_rotX_1;
   if (rotY_1 > 400)
@@ -130,14 +142,16 @@ void loop() {
     led_1[i] = CRGB(inputx/10, inputy/10, inputz/10);
    }
 
+  //Serial.println("Scanning from second sensor...");
+  //delay(0.5);
+
   // second limb
   scan_motion(MOTION_PIN_2);
-  print_data();
   if (rotX_2 > 400)
     rotX_2 = prev_rotX_2;
   if (rotY_2 > 400)
     rotY_2 = prev_rotY_2;
-  if (rotZ_1 > 400)
+  if (rotZ_2 > 400)
     rotZ_2 = prev_rotZ_2;
 
    inputx = (int) rotX_2;
@@ -148,14 +162,16 @@ void loop() {
     led_2[i] = CRGB(inputx/10, inputy/10, inputz/10);
    }
 
+  //Serial.println("Scanning from third sensor...");
+  //delay(0.5);
+
   // third limb
   scan_motion(MOTION_PIN_3);
-  print_data();
   if (rotX_3 > 400)
     rotX_3 = prev_rotX_3;
-  if (rotY_1 > 400)
+  if (rotY_3 > 400)
     rotY_3 = prev_rotY_3;
-  if (rotZ_1 > 400)
+  if (rotZ_3 > 400)
     rotZ_3 = prev_rotZ_3;
 
    inputx = (int) rotX_3;
@@ -166,9 +182,11 @@ void loop() {
     led_3[i] = CRGB(inputx/10, inputy/10, inputz/10);
    }
 
+  //Serial.println("Scanning from fourth sensor...");
+  //delay(0.5);
+
   // fourth limb
   scan_motion(MOTION_PIN_4);
-  print_data();
   if (rotX_4 > 400)
     rotX_4 = prev_rotX_4;
   if (rotY_4 > 400)
@@ -176,14 +194,18 @@ void loop() {
   if (rotZ_4 > 400)
     rotZ_4 = prev_rotZ_4;
 
-   inputx = (int) prev_rotX_4;
-   inputy = (int) prev_rotY_4;
-   inputz = (int) prev_rotZ_4;
+   inputx = (int) rotX_4;
+   inputy = (int) rotY_4;
+   inputz = (int) rotZ_4;
    //set_led(led_1, NUM_LEDS_ARMS, inputx/10, inputy/10, inputz/10);
    for (int i = 0; i < NUM_LEDS_LEGS; i++) {
     led_4[i] = CRGB(inputx/10, inputy/10, inputz/10);
    }
-   
+
+  //print_data();
+  //Serial.println("Writing to LEDs...");
+  //delay(500);
+  
   FastLED.show(); // bit bang to LED's
 
   //Serial.println("Assigned colors");
@@ -402,7 +424,7 @@ void print_data() {
   Serial.print(" Y4=");
   Serial.print(rotY_4);
   Serial.print(" Z4=");
-  Serial.print(rotZ_4);
+  Serial.println(rotZ_4);
   
   //Serial.print(" Accel (g)");
   //Serial.print(" X=");
@@ -426,6 +448,8 @@ void print_data() {
 */
 void scan_motion(int sensor) {
   digitalWrite(sensor,LOW);
+  //Serial.print("scanning MPU");
+  //Serial.println(sensor);
   //record_accel_registers(sensor);
   record_gyro_registers(sensor);
   digitalWrite(sensor,HIGH);
