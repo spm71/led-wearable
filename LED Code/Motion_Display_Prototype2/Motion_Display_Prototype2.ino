@@ -14,19 +14,19 @@
 
 // number of LED's on strip
 #define NUM_LEDS_ARMS 16 
-#define NUM_LEDS_LEGS 20 
+#define NUM_LEDS_LEGS 24 
 
 // digital pins for LED data output
-#define LED_PIN_1 1 
-#define LED_PIN_2 1
-#define LED_PIN_3 1
-#define LED_PIN_4 1
+#define LED_PIN_1 5 
+#define LED_PIN_2 6
+#define LED_PIN_3 7
+#define LED_PIN_4 8
 
 // digital pins for motion data input
-#define MOTION_PIN_1 2 
-#define MOTION_PIN_2 3
-#define MOTION_PIN_3 4
-#define MOTION_PIN_4 5
+#define MOTION_PIN_1 0 
+#define MOTION_PIN_2 1
+#define MOTION_PIN_3 2
+#define MOTION_PIN_4 3
 
 // variables for acceleration data
 long accelX, accelY, accelZ;
@@ -55,8 +55,11 @@ CRGB led_4[NUM_LEDS_LEGS];
 void set_led(CRGB led, int led_count, int x, int y, int z);
 void setup_MPU();
 void record_accel_registers(int sensor);
+void record_gyro_registers(int sensor);
 void process_accel_data(int sensor);
+void process_gyro_data(int sensor);
 void print_data();
+void scan_motion(int sensor);
 
 /*
  * void setup();
@@ -126,7 +129,6 @@ void loop() {
    for (int i = 0; i < NUM_LEDS_ARMS; i++) {
     led_1[i] = CRGB(inputx/10, inputy/10, inputz/10);
    }
-  FastLED.show();
 
   // second limb
   scan_motion(MOTION_PIN_2);
@@ -145,7 +147,6 @@ void loop() {
    for (int i = 0; i < NUM_LEDS_ARMS; i++) {
     led_2[i] = CRGB(inputx/10, inputy/10, inputz/10);
    }
-  FastLED.show();
 
   // third limb
   scan_motion(MOTION_PIN_3);
@@ -164,7 +165,6 @@ void loop() {
    for (int i = 0; i < NUM_LEDS_LEGS; i++) {
     led_3[i] = CRGB(inputx/10, inputy/10, inputz/10);
    }
-  FastLED.show();
 
   // fourth limb
   scan_motion(MOTION_PIN_4);
@@ -183,7 +183,8 @@ void loop() {
    for (int i = 0; i < NUM_LEDS_LEGS; i++) {
     led_4[i] = CRGB(inputx/10, inputy/10, inputz/10);
    }
-  FastLED.show();
+   
+  FastLED.show(); // bit bang to LED's
 
   //Serial.println("Assigned colors");
 }
@@ -375,19 +376,41 @@ int convert_to_LED(long data) {
 */
 void print_data() {
   Serial.print("Gyro (deg)");
-  Serial.print(" X=");
+  Serial.print(" X1=");
   Serial.print(rotX_1);
-  Serial.print(" Y=");
+  Serial.print(" Y1=");
   Serial.print(rotY_1);
-  Serial.print(" Z=");
+  Serial.print(" Z1=");
   Serial.print(rotZ_1);
-  Serial.print(" Accel (g)");
-  Serial.print(" X=");
-  Serial.print(gForceX_1);
-  Serial.print(" Y=");
-  Serial.print(gForceY_1);
-  Serial.print(" Z=");
-  Serial.println(gForceZ_1);
+
+  Serial.print(" X2=");
+  Serial.print(rotX_2);
+  Serial.print(" Y2=");
+  Serial.print(rotY_2);
+  Serial.print(" Z2=");
+  Serial.print(rotZ_2);
+
+  Serial.print(" X3=");
+  Serial.print(rotX_3);
+  Serial.print(" Y3=");
+  Serial.print(rotY_3);
+  Serial.print(" Z3=");
+  Serial.print(rotZ_3);
+
+  Serial.print(" X4=");
+  Serial.print(rotX_4);
+  Serial.print(" Y4=");
+  Serial.print(rotY_4);
+  Serial.print(" Z4=");
+  Serial.print(rotZ_4);
+  
+  //Serial.print(" Accel (g)");
+  //Serial.print(" X=");
+  //Serial.print(gForceX_1);
+  //Serial.print(" Y=");
+  //Serial.print(gForceY_1);
+  //Serial.print(" Z=");
+  //Serial.println(gForceZ_1);
 }
 
 /*
@@ -403,7 +426,7 @@ void print_data() {
 */
 void scan_motion(int sensor) {
   digitalWrite(sensor,LOW);
-  record_accel_registers(sensor);
+  //record_accel_registers(sensor);
   record_gyro_registers(sensor);
   digitalWrite(sensor,HIGH);
 }
