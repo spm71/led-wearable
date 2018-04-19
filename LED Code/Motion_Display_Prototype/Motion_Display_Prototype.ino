@@ -14,7 +14,7 @@
 
 // number of LED's on strip
 #define NUM_LEDS_ARMS 16 
-#define NUM_LEDS_LEGS 24 
+#define NUM_LEDS_LEGS 24
 
 // digital pins for LED data output
 #define LED_PIN_1 5 
@@ -101,12 +101,27 @@ void setup() {
   pinMode (MOTION_PIN_2, OUTPUT);
   pinMode (MOTION_PIN_3, OUTPUT);
   pinMode (MOTION_PIN_4, OUTPUT);
-  digitalWrite(MOTION_PIN_1,HIGH);
+  
+  digitalWrite(MOTION_PIN_1,LOW);
   digitalWrite(MOTION_PIN_2,HIGH);
   digitalWrite(MOTION_PIN_3,HIGH);
   digitalWrite(MOTION_PIN_4,HIGH);
   
   setup_MPU();
+  
+  digitalWrite(MOTION_PIN_1,HIGH);
+  digitalWrite(MOTION_PIN_2,LOW);
+  setup_MPU();
+  
+  digitalWrite(MOTION_PIN_2,HIGH);
+  digitalWrite(MOTION_PIN_3,LOW);
+  setup_MPU();
+
+  digitalWrite(MOTION_PIN_3,HIGH);
+  digitalWrite(MOTION_PIN_4,LOW);
+  setup_MPU();
+
+  digitalWrite(MOTION_PIN_4,HIGH);
   
   Serial.println("Ready");
 }
@@ -124,9 +139,6 @@ void setup() {
 void loop() {
   
   //double start = millis();
-
-  //.println("Scanning from first sensor...");
-  //delay(0.5);
   
   // first limb
   scan_motion(MOTION_PIN_1); //obtain motion data
@@ -160,7 +172,6 @@ void loop() {
    inputx = (int) rotX_2;
    inputy = (int) rotY_2;
    inputz = (int) rotZ_2;
-   //set_led(led_1, NUM_LEDS_ARMS, inputx/10, inputy/10, inputz/10);
    for (int i = 0; i < NUM_LEDS_ARMS; i++) {
     led_2[i] = CRGB(inputx/10, inputy/10, inputz/10);
    }
@@ -177,7 +188,6 @@ void loop() {
    inputx = (int) rotX_3;
    inputy = (int) rotY_3;
    inputz = (int) rotZ_3;
-   //set_led(led_3, NUM_LEDS_ARMS, inputx/10, inputy/10, inputz/10);
    for (int i = 0; i < NUM_LEDS_LEGS; i++) {
     led_3[i] = CRGB(inputx/10, inputy/10, inputz/10);
    }
@@ -194,25 +204,22 @@ void loop() {
    inputx = (int) rotX_4;
    inputy = (int) rotY_4;
    inputz = (int) rotZ_4;
-   //set_led(led_1, NUM_LEDS_ARMS, inputx/10, inputy/10, inputz/10);
    for (int i = 0; i < NUM_LEDS_LEGS; i++) {
     led_4[i] = CRGB(inputx/10, inputy/10, inputz/10);
    }
 
   //print_data();
-  //Serial.println("Writing to LEDs...");
-  //delay(500);
   
   FastLED.show(); // bit bang to LED's
 
   // find processing time and print it to console
-  //double elapsed_time = millis() - start; 
-  /*
+  /*double elapsed_time = millis() - start; 
+  
   Serial.print("Time elapsed: ");
   Serial.print(elapsed_time);
   Serial.println("ms");
   */
-  //Serial.println("Assigned colors");
+  
 }
 
 /*
