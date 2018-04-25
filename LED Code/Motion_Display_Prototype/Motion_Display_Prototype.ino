@@ -97,18 +97,20 @@ void setup() {
   }
   FastLED.show();
 
+  // declare motion sensors as outputs
   pinMode (MOTION_PIN_1, OUTPUT);
   pinMode (MOTION_PIN_2, OUTPUT);
   pinMode (MOTION_PIN_3, OUTPUT);
   pinMode (MOTION_PIN_4, OUTPUT);
-  
+
+  // set one motion sensor as active, others as inactive
   digitalWrite(MOTION_PIN_1,LOW);
   digitalWrite(MOTION_PIN_2,HIGH);
   digitalWrite(MOTION_PIN_3,HIGH);
   digitalWrite(MOTION_PIN_4,HIGH);
-  
+  // run setup function for first MPU
   setup_MPU();
-  
+  // repeat process for three other MPU's
   digitalWrite(MOTION_PIN_1,HIGH);
   digitalWrite(MOTION_PIN_2,LOW);
   setup_MPU();
